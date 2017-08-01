@@ -134,6 +134,28 @@ def getStartEnd(k,b,n):
 validation4 = train_valid_shuffled[start:end+1]
 print int(round(validation4['price'].mean(), 0))
 
-def k_fold_cross_validation(k, l2_penalty, data, output):
-    ...
-    return [average validation error]
+def k_fold_cross_validation(k, l2_penalty, data, output_name, features_list):
+    nLen = len(data)
+    print(nLen)
+    rss_lst = []
+    for i in xrange(k):
+        (start,end)= getStartEnd(k,i,nLen)
+        validation = data[start:end+1]
+        print validation.head()
+        train = data[0:start].append(data[end+1:nLen])
+        print train.head()
+        model = graphlab.linear_regression.create(train, target = output_name, features = features_list, validation_set = None,l2_penalty = l2_penalty)
+        error = validation[output_name] - model.predict(validation)
+        error = error * error
+        rss = error.sum()
+        rss_lst.append(rss)    
+    rss_lst = np.asarray(rss_lst)    
+    return rss_lst.mean()
+
+poly15_data = polynomial_sframe(sales['sqft_living'], 15)
+my_features = poly15_data.column_names() # get the name of the features
+poly15_data['price'] = sales['price'] # add price to the data since it's the target
+rss_lst = k_fold_cross_validation(k,l2_penalty,poly15_data,'price',my_features)
+
+
+
