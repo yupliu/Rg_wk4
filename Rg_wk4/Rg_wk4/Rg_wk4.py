@@ -131,8 +131,8 @@ def getStartEnd(k,b,n):
 
 (start,end) = getStartEnd(k,3,n)
 
-validation4 = train_valid_shuffled[start:end+1]
-print int(round(validation4['price'].mean(), 0))
+#validation4 = train_valid_shuffled[start:end+1]
+#print int(round(validation4['price'].mean(), 0))
 
 def k_fold_cross_validation(k, l2_penalty, data, output_name, features_list):
     nLen = len(data)
@@ -141,9 +141,9 @@ def k_fold_cross_validation(k, l2_penalty, data, output_name, features_list):
     for i in xrange(k):
         (start,end)= getStartEnd(k,i,nLen)
         validation = data[start:end+1]
-        print validation.head()
+        #print validation.head()
         train = data[0:start].append(data[end+1:nLen])
-        print train.head()
+        #print train.head()
         model = graphlab.linear_regression.create(train, target = output_name, features = features_list, validation_set = None,l2_penalty = l2_penalty)
         error = validation[output_name] - model.predict(validation)
         error = error * error
@@ -152,10 +152,24 @@ def k_fold_cross_validation(k, l2_penalty, data, output_name, features_list):
     rss_lst = np.asarray(rss_lst)    
     return rss_lst.mean()
 
-poly15_data = polynomial_sframe(sales['sqft_living'], 15)
+poly15_data = polynomial_sframe(train_valid_shuffled['sqft_living'], 15)
 my_features = poly15_data.column_names() # get the name of the features
-poly15_data['price'] = sales['price'] # add price to the data since it's the target
+poly15_data['price'] = train_valid_shuffled['price'] # add price to the data since it's the target
 rss_lst = k_fold_cross_validation(k,l2_penalty,poly15_data,'price',my_features)
 
+l2_penalty_lst =  np.logspace(3, 9, num=13)
+
+l2_rss = []
+for l2 in l2_penalty_lst:
+    rss_lst = k_fold_cross_validation(k,l2,poly15_data,'price',my_features)
+    l2_rss.append(rss_lst)
+
+
+l2_optimal = 1.00000000e+03
+final_model = graphlab.linear_regression.create(poly15_data, target = 'price', features = my_features, validation_set = None,l2_penalty = l2_optimal)
+test_result = final_model.predict(test)
+final_err = test_result - test['price']
+final_err = final_err * final_err
+final_rss = final_err.sum()
 
 
